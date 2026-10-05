@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Kviz Milioner</title>
+<meta name="apple-mobile-web-app-title" content="Milioner">
+<meta name="theme-color" content="#0d1147">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+  :root {
+    --bg-0: #05061a;
+    --bg-1: #0d1147;
+    --bg-2: #1a1f7a;
+    --gold: #f5c542;
+    --gold-soft: #ffe08a;
+    --line: #5b7cff;
+    --text: #f4f6ff;
+    --muted: #9aa3d6;
+    --panel: #0a0d38;
+    --orange: #ff9a1f;
+    --green: #21c46b;
+    --red: #e5394b;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: #000;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    user-select: none; -webkit-user-select: none;
+  }
+  #app {
+    position: relative;
+    width: 100%; height: 100%;
+    background:
+      radial-gradient(120% 60% at 50% 0%, var(--bg-2) 0%, transparent 70%),
+      radial-gradient(90% 50% at 50% 100%, #2a1470 0%, transparent 70%),
+      linear-gradient(180deg, var(--bg-1), var(--bg-0));
+    overflow: hidden;
+  }
+  .screen {
+    position: absolute; inset: 0;
+    display: none; flex-direction: column;
+    padding: calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 18px);
+  }
+  .screen.active { display: flex; }
+
+  /* ---------- Start ---------- */
+  #start { align-items: center; justify-content: center; text-align: center; gap: 14px; }
+  .emblem {
+    width: 150px; height: 150px; border-radius: 50%;
+    border: 3px solid var(--gold);
+    box-shadow: 0 0 40px rgba(245,197,66,.45), inset 0 0 30px rgba(91,124,255,.6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px; margin-bottom: 8px;
+    background: radial-gradient(circle, var(--bg-2), var(--bg-0));
+    animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse { 50% { box-shadow: 0 0 70px rgba(245,197,66,.7), inset 0 0 30px rgba(91,124,255,.6); } }
+  h1 { margin: 0; font-size: 34px; letter-spacing: 1px; text-transform: uppercase; }
+  h1 span { color: var(--gold); }
+  .sub { color: var(--muted); font-size: 15px; margin-bottom: 22px; }
+  .mode {
+    width: 100%; padding: 16px 18px; border-radius: 16px;
+    border: 1.5px solid var(--line); background: rgba(10,13,56,.85);
+    color: var(--text); font: inherit; text-align: left; cursor: pointer;
+    display: flex; align-items: center; gap: 14px;
+    transition: transform .12s, border-color .12s;
+  }
+  .mode:active { transform: scale(.97); }
+  .mode .ico { font-size: 28px; }
+  .mode b { display: block; font-size: 18px; }
+  .mode small { color: var(--muted); font-size: 13px; }
+  .mode.primary { border-color: var(--gold); box-shadow: 0 0 22px rgba(245,197,66,.25); }
+  .mode[disabled] { opacity: .45; cursor: default; }
+  #loadMsg { color: var(--muted); font-size: 13px; min-height: 18px; }
+
+  /* ---------- Game ---------- */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .pill {
+    border: 1.5px solid var(--line); background: rgba(10,13,56,.85);
+    border-radius: 999px; padding: 8px 14px; font-size: 14px; color: var(--text);
+    font-family: inherit; cursor: pointer;
+  }
+  .pill.gold { border-color: var(--gold); color: var(--gold-soft); font-weight: 700; }
+  .dots { display: flex; gap: 4px; margin: 14px 0 6px; }
+  .dots i { flex: 1; height: 5px; border-radius: 3px; background: rgba(255,255,255,.14); }
+  .dots i.done { background: var(--gold); }
+  .dots i.now { background: #fff; }
+  .dots i.safe { outline: 1px solid var(--gold); outline-offset: 1px; }
+
+  .lifelines { display: flex; justify-content: center; gap: 12px; margin: 10px 0 4px; }
+  .life {
+    width: 74px; height: 44px; border-radius: 50%;
+    border: 2px solid var(--line); background: radial-gradient(circle, var(--bg-2), var(--panel));
+    color: var(--text); font: 700 14px inherit; font-family: inherit; cursor: pointer;
+  }
+  .life:active { transform: scale(.94); }
+  .life.used { opacity: .3; text-decoration: line-through; pointer-events: none; }
+
+  .stage { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; padding: 8px 0; }
+  .logo-card {
+    width: min(78%, 300px); aspect-ratio: 1; max-height: 100%;
+    border-radius: 28px; background: radial-gradient(circle at 50% 35%, #fff, #dfe4f5);
+    border: 3px solid var(--gold);
+    box-shadow: 0 0 50px rgba(91,124,255,.55), 0 14px 30px rgba(0,0,0,.5);
+    display: flex; align-items: center; justify-content: center; padding: 26px;
+  }
+  .logo-card img { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none; }
+  .logo-card.pop { animation: pop .35s ease-out; }
+  @keyframes pop { from { transform: scale(.8); opacity: 0; } }
+
+  .question {
+    text-align: center; font-size: 17px; font-weight: 600;
+    padding: 12px; margin-bottom: 12px;
+    border: 1.5px solid var(--line); border-radius: 14px; background: rgba(10,13,56,.9);
+  }
+  .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ans {
+    position: relative; height: 58px; border: 0; padding: 0; cursor: pointer;
+    background: var(--line); color: var(--text); font-family: inherit;
+    clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%);
+    transition: transform .1s;
+  }
+  .ans:active { transform: scale(.97); }
+  .ans span {
+    position: absolute; inset: 2px; display: flex; align-items: center; gap: 6px;
+    padding: 0 18px; font-size: 15px; font-weight: 600; text-align: left; line-height: 1.1;
+    background: linear-gradient(180deg, #141a63, var(--panel));
+    clip-path: inherit;
+  }
+  .ans em { font-style: normal; color: var(--gold); font-weight: 800; }
+  .ans.picked { background: #fff; }
+  .ans.picked span { background: linear-gradient(180deg, #ffb347, var(--orange)); color: #1a1000; }
+  .ans.picked em, .ans.right em, .ans.wrong em { color: inherit; }
+  .ans.right { background: #fff; }
+  .ans.right span { background: linear-gradient(180deg, #3be088, var(--green)); color: #022a12; animation: blink .3s 3; }
+  .ans.wrong span { background: linear-gradient(180deg, #ff6a78, var(--red)); }
+  .ans.hidden { visibility: hidden; }
+  .locked .ans, .locked .life { pointer-events: none; }
+  @keyframes blink { 50% { filter: brightness(1.6); } }
+
+  /* ---------- Overlays ---------- */
+  .overlay {
+    position: absolute; inset: 0; z-index: 5; display: none;
+    background: rgba(3,4,20,.92); backdrop-filter: blur(6px);
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: calc(env(safe-area-inset-top) + 24px) 22px calc(env(safe-area-inset-bottom) + 24px);
+    text-align: center;
+  }
+  .overlay.active { display: flex; }
+  .ladder { width: 100%; max-width: 300px; list-style: none; margin: 0 0 18px; padding: 0; }
+  .ladder li {
+    display: flex; justify-content: space-between; padding: 5px 14px; border-radius: 8px;
+    font-size: 15px; color: var(--muted);
+  }
+  .ladder li.safe { color: #fff; font-weight: 700; }
+  .ladder li.now { background: var(--orange); color: #1a1000; font-weight: 800; }
+  .ladder li.done { color: var(--gold); }
+  .big { font-size: 44px; font-weight: 800; color: var(--gold); margin: 6px 0 4px; text-shadow: 0 0 30px rgba(245,197,66,.6); }
+  .overlay h2 { margin: 0; font-size: 26px; }
+  .overlay p { color: var(--muted); margin: 6px 0 22px; font-size: 15px; }
+  .btn {
+    width: 100%; max-width: 300px; padding: 15px; margin-top: 10px; border-radius: 14px;
+    border: 1.5px solid var(--gold); background: linear-gradient(180deg, #ffd765, var(--gold));
+    color: #231a00; font: 800 16px inherit; font-family: inherit; cursor: pointer;
+  }
+  .btn.ghost { background: transparent; color: var(--text); border-color: var(--line); font-weight: 600; }
+  .btn:active { transform: scale(.97); }
+
+  /* ---------- Modovi sa igračima ---------- */
+  .mode .ico svg { width: 34px; height: auto; display: block; }
+  .name-card {
+    display: none; width: 100%; max-width: 620px; padding: 34px 20px; text-align: center;
+    border-radius: 28px; border: 3px solid var(--gold);
+    background: linear-gradient(180deg, #141a63, var(--panel));
+    box-shadow: 0 0 50px rgba(91,124,255,.55), 0 14px 30px rgba(0,0,0,.5);
+  }
+  .name-card.pop { animation: pop .35s ease-out; }
+  .name-card small { display: block; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; font-size: 13px; margin-bottom: 10px; }
+  .name-card b { display: block; font-size: clamp(26px, 6.5vw, 58px); letter-spacing: 1px; text-transform: uppercase; line-height: 1.05; overflow-wrap: anywhere; }
+  #game.players .logo-card { display: none; }
+  #game.players .name-card { display: block; }
+  #game.players .answers { grid-template-columns: repeat(4, 1fr); }
+  .ans.jersey {
+    height: auto; clip-path: none; padding: 8px 6px 10px; border-radius: 16px;
+    border: 2px solid var(--line); background: rgba(10,13,56,.9);
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .ans.jersey em { color: var(--gold); font-size: 14px; }
+  .ans.jersey svg { width: 100%; max-width: 140px; height: auto; }
+  .ans.jersey.picked { border-color: var(--orange); background: rgba(255,154,31,.3); box-shadow: 0 0 18px var(--orange); }
+  .ans.jersey.right { border-color: var(--green); background: rgba(33,196,107,.35); box-shadow: 0 0 18px var(--green); animation: blink .3s 3; }
+  .ans.jersey.wrong { border-color: var(--red); background: rgba(229,57,75,.35); }
+
+  /* ---------- Pregled znakova ---------- */
+  #galOv { position: absolute; inset: 0; z-index: 6; display: none; flex-direction: column; background: var(--bg-0); }
+  #galOv.active { display: flex; }
+  .gal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: calc(env(safe-area-inset-top) + 14px) 18px 14px; }
+  #gal { flex: 1; overflow-y: auto; padding: 0 18px 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; align-content: start; }
+  #gal h3 { grid-column: 1 / -1; margin: 10px 0 0; font-size: 16px; color: var(--gold-soft); }
+  .gal-item { background: #fff; color: #111; border-radius: 12px; padding: 10px; text-align: center; font-size: 14px; font-weight: 700; }
+  .gal-item div { display: flex; align-items: center; justify-content: space-around; gap: 8px; height: 100px; margin-bottom: 6px; }
+  .gal-item img { width: 44%; height: 100%; min-width: 0; object-fit: contain; }
+  .gal-item i { font-style: normal; color: #999; }
+
+  /* ---------- iPad ---------- */
+  #side { display: none; }
+  @media (min-width: 700px) {
+    .screen { padding: calc(env(safe-area-inset-top) + 28px) 40px calc(env(safe-area-inset-bottom) + 28px); }
+    #game > * { width: 100%; max-width: 780px; align-self: center; }
+    .emblem { width: 200px; height: 200px; font-size: 88px; }
+    h1 { font-size: 52px; }
+    .sub { font-size: 20px; margin-bottom: 30px; }
+    .mode { max-width: 520px; padding: 22px 24px; border-radius: 20px; }
+    .mode .ico { font-size: 38px; }
+    .mode b { font-size: 24px; }
+    .mode small { font-size: 16px; }
+    #loadMsg { font-size: 15px; }
+    .pill { font-size: 19px; padding: 12px 22px; }
+    .dots { margin: 20px 0 8px; gap: 6px; }
+    .dots i { height: 8px; border-radius: 4px; }
+    .lifelines { gap: 20px; margin: 14px 0 6px; }
+    .life { width: 120px; height: 64px; font-size: 19px; }
+    .stage { padding: 14px 0; }
+    .logo-card { width: auto; height: min(100%, 440px); border-radius: 36px; padding: 40px; }
+    .question { font-size: 24px; padding: 18px; margin-bottom: 16px; border-radius: 18px; }
+    .answers { gap: 16px; }
+    .ans { height: 86px; clip-path: polygon(22px 0, calc(100% - 22px) 0, 100% 50%, calc(100% - 22px) 100%, 22px 100%, 0 50%); }
+    .ans span { font-size: 23px; padding: 0 32px; gap: 10px; }
+    .mode .ico svg { width: 44px; }
+    .name-card small { font-size: 16px; }
+    .ans.jersey { padding: 12px 10px 16px; border-radius: 20px; }
+    .ans.jersey em { font-size: 18px; }
+    .ladder { max-width: 380px; }
+    .ladder li { font-size: 20px; padding: 7px 18px; }
+    .overlay h2 { font-size: 38px; }
+    .overlay p { font-size: 19px; }
+    .big { font-size: 72px; }
+    .btn { max-width: 380px; padding: 20px; font-size: 20px; border-radius: 18px; }
+  }
+  @media (min-width: 1000px) and (orientation: landscape) {
+    #game { padding-right: 340px; }
+    #game > #side {
+      display: flex; align-items: center; justify-content: center;
+      position: absolute; top: 0; right: 0; bottom: 0; width: 320px; max-width: none;
+      padding: 24px; background: rgba(5,6,26,.55); border-left: 1.5px solid rgba(91,124,255,.5);
+    }
+    #side .ladder { margin: 0; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <section id="start" class="screen active">
+    <div class="emblem">🏆</div>
+    <h1>Kviz <span>Milioner</span></h1>
+    <div class="sub">15 pitanja · 4 odgovora · 2 pomoći</div>
+    <button class="mode primary" id="playBtn" disabled>
+      <span class="ico">🚗</span>
+      <span><b>Znakovi automobila</b><small>Pogodi marku po znaku</small></span>
+    </button>
+    <button class="mode" id="partizanBtn">
+      <span class="ico" id="partizanIco"></span>
+      <span><b>Partizan</b><small>Košarkaši · pogodi broj na dresu</small></span>
+    </button>
+    <button class="mode" id="zvezdaBtn">
+      <span class="ico" id="zvezdaIco"></span>
+      <span><b>Crvena zvezda</b><small>Košarkaši · pogodi broj na dresu</small></span>
+    </button>
+    <div id="loadMsg">Učitavanje znakova…</div>
+    <button class="pill" id="galBtn">🖼 Pregled znakova</button>
+  </section>
+
+  <section id="game" class="screen">
+    <div class="top">
+      <button class="pill" id="quitBtn">✕ Odustani</button>
+      <span class="pill" id="qNum">1 / 15</span>
+      <button class="pill gold" id="prizeBtn">100 €</button>
+    </div>
+    <div class="dots" id="dots"></div>
+    <div class="lifelines">
+      <button class="life" id="fifty">50:50</button>
+      <button class="life" id="swap">⇄ Zameni</button>
+    </div>
+    <div class="stage">
+      <div class="logo-card" id="card"><img id="logo" alt=""></div>
+      <div class="name-card" id="nameCard"><small id="nameClub"></small><b id="nameText"></b></div>
+    </div>
+    <div class="question" id="qText"></div>
+    <div class="answers" id="answers"></div>
+    <aside id="side"><ul class="ladder"></ul></aside>
+  </section>
+
+  <div class="overlay" id="ladderOv">
+    <ul class="ladder" id="ladder"></ul>
+    <button class="btn ghost" id="ladderClose">Nazad</button>
+  </div>
+
+  <div class="overlay" id="quitOv">
+    <h2>Odustaješ?</h2>
+    <div class="big" id="quitSum"></div>
+    <p>Ako odustaneš sada, nosiš ovaj iznos.</p>
+    <button class="btn" id="quitYes">Uzmi novac</button>
+    <button class="btn ghost" id="quitNo">Nastavi igru</button>
+  </div>
+
+  <div id="galOv">
+    <div class="gal-head"><b>Pregled znakova: original → u igri</b><button class="pill" id="galClose">✕ Zatvori</button></div>
+    <div id="gal"></div>
+  </div>
+
+  <div class="overlay" id="endOv">
+    <h2 id="endTitle"></h2>
+    <div class="big" id="endSum"></div>
+    <p id="endText"></p>
+    <button class="btn" id="againBtn">Igraj ponovo</button>
+    <button class="btn ghost" id="homeBtn">Početni ekran</button>
+  </div>
+</div>
+
+<script>
+const WIKI = "https://thumb.wikimedia.org/wikipedia/";
+// Slika znaka: opt.url ako je zadat poseban izvor, inače iz skupa car-logos-dataset
+const IMG = b => b.opt?.url || `https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/${b.slug}.png`;
+
+// Krugovi za zamućenje duž luka (natpis na obodu okruglog znaka): uglovi u stepenima, poluprečnik, veličina, broj
+const arc = (a0, a1, r, size, n) => Array.from({ length: n }, (_, i) => {
+  const a = (a0 + (a1 - a0) * i / (n - 1)) * Math.PI / 180;
+  return [.5 + r * Math.cos(a), .5 + r * Math.sin(a), size, size];
+});
+
+// [naziv, slug, težina 0-2, obrada slike (vidi process)]
+const BRANDS = [
+  ["BMW","bmw",0,{blur:arc(215,325,.40,.11,5)}],["Mercedes-Benz","mercedes-benz",0,{cut:"b"}],["Audi","audi",0],["Volkswagen","volkswagen",0],
+  ["Toyota","toyota",0],["Ford","ford",0],["Honda","honda",0,{cut:"b"}],["Opel","opel",0,{blur:[[.5,.1,.28,.09]]}],["Renault","renault",0],
+  ["Peugeot","peugeot",0,{cut:"b"}],["Fiat","fiat",0],["Škoda","skoda",0,{cut:"b"}],["Ferrari","ferrari",0,{blur:[[.5,.89,.46,.07]]}],["Tesla","tesla",0,{cut:"b"}],
+  ["Nissan","nissan",0],["Hyundai","hyundai",0,{cut:"b"}],["Kia","kia",0],
+  ["Mazda","mazda",1,{cut:"b"}],["Volvo","volvo",1],["Citroën","citroen",1,{cut:"b"}],["Seat","seat",1,{cut:"b"}],["Dacia","dacia",1],
+  ["Porsche","porsche",1,{cut:"b",blur:[[.37,.105,.42,.08]]}],["Lamborghini","lamborghini",1],["Alfa Romeo","alfa-romeo",1,{blur:arc(188,352,.41,.09,8)}],["Mitsubishi","mitsubishi",1,{cut:"b"}],
+  ["Subaru","subaru",1,{cut:"b"}],["Suzuki","suzuki",1,{cut:"b"}],["Lexus","lexus",1,{cut:"b"}],["Mini","mini",1],
+  ["Land Rover","land-rover",1],["Jaguar","jaguar",1,{cut:"b"}],["Chevrolet","chevrolet",1,{cut:"b"}],
+  ["Maserati","maserati",2,{cut:"b"}],["Bentley","bentley",2,{cut:"b"}],["Rolls-Royce","rolls-royce",2,{blur:[[.5,.11,.48,.1],[.5,.89,.48,.1]]}],["Aston Martin","aston-martin",2,{cut:"b"}],
+  ["Bugatti","bugatti",2],["Lotus","lotus",2],["Infiniti","infiniti",2,{cut:"b"}],["Acura","acura",2,{cut:"b"}],
+  ["Cadillac","cadillac",2,{cut:"b"}],["Lancia","lancia",2],["Genesis","genesis",2,{cut:"b"}],["Koenigsegg","koenigsegg",2,{cut:"b"}],
+  ["Pagani","pagani",2],["Buick","buick",2,{cut:"r"}],["Lincoln","lincoln",2,{cut:"r"}],["Chrysler","chrysler",2,{url:WIKI+"it/thumb/8/8a/Logo_della_Chrysler_%28vecchio%29.svg/500px-Logo_della_Chrysler_%28vecchio%29.svg.png",cut:"t"}],
+  ["Saab","saab",2,{url:WIKI+"de/thumb/7/73/Saab.svg/500px-Saab.svg.png",erase:[[.2,.64,.8,.78]]}],["Daihatsu","daihatsu",2,{cut:"r"}],
+  ["SsangYong","ssangyong",2,{cut:"b"}],["Abarth","abarth",2,{blur:[[.5,.115,.52,.095]]}],["Cupra","cupra",2,{cut:"b"}],["Polestar","polestar",2],["Smart","smart",2]
+].map(([name, slug, tier, opt = {}]) => ({ name, slug, tier, opt }));
+
+// Košarkaši iz poslednjih 5 godina: [prezime, ime i prezime, broj, ...ostali brojevi koje je nosio u klubu]
+// Izvor: istorija šablona "current roster" oba kluba na en.wikipedia.org, 10/2021 - 10/2026
+const players = list => list.map(([sur, full, num, ...alt]) => ({ sur, full, num, alt }));
+const CLUBS = {
+  partizan: { name: "Partizan", body: "#111", trim: "#fff", players: players([
+    ["Kurucs","Rodions Kurucs","00"],["Punter","Kevin Punter","7","0"],["LeDay","Zach LeDay","2"],["Zagorac","Rade Zagorac","3"],
+    ["Avramović","Aleksa Avramović","4"],["Koprivica","Balša Koprivica","5"],["Dangubić","Nemanja Dangubić","6"],["Smailagić","Alen Smailagić","9"],
+    ["Miletić","Dušan Miletić","11"],["Moore","Dallas Moore","14"],["Glas","Gregor Glas","24"],["Trifunović","Uroš Trifunović","32"],
+    ["Madar","Yam Madar","41"],["Lessort","Mathias Lessort","26"],["Vukčević","Tristan Vukčević","1","10"],["Anđušić","Danilo Anđušić","33"],
+    ["Exum","Dante Exum","11","10"],["Nunnally","James Nunnally","21"],["Papapetrou","Ioannis Papapetrou","10","6"],["Drezgić","Savo Drezgić","3"],
+    ["Jaramaz","Ognjen Jaramaz","10"],["Ponitka","Mateusz Ponitka","37"],["Dozier","PJ Dozier","35"],["Kaminsky","Frank Kaminsky","44"],
+    ["Caboclo","Bruno Caboclo","50"],["Smith","Jaleen Smith","0"],["Lundberg","Gabriel Lundberg","1"],["Marinković","Vanja Marinković","9"],
+    ["Ntilikina","Frank Ntilikina","3","44"],["Dimitrijević","Aleksa Dimitrijević","27"],["Davies","Brandon Davies","0"],["C. Jones","Carlik Jones","1","2"],
+    ["Washington","Duane Washington Jr.","4"],["Nakić","Mario Nakić","7"],["Bošnjaković","Mitar Bošnjaković","8"],["Pokuševski","Aleksej Pokuševski","11"],
+    ["Brown","Sterling Brown","12"],["Bonga","Isaac Bonga","17"],["Lakić","Arijan Lakić","19"],["Mike","Isiaha Mike","24"],
+    ["T. Jones","Tyrique Jones","88"],["Osetkowski","Dylan Osetkowski","5","21"],["Parker","Jabari Parker","22"],["Milton","Shake Milton","2","20"],
+    ["Šekularac","Đorđe Šekularac","21"],["Illeș","Luca Illeș","23","24"],["Danilović","Uroš Danilović","44"],["Mijailović","Uroš Mijailović","10"],
+    ["Muurinen","Miikka Muurinen","3"],["Fernando","Bruno Fernando","24"],["Calathes","Nick Calathes","33","35"],["Payne","Cameron Payne","15"],
+    ["Jekiri","Tonye Jekiri","23"],["Radanov","Aleksa Radanov","13"],["Lauvergne","Joffrey Lauvergne","77"],["Pajola","Alessandro Pajola","66","6"],
+    ["Hayes","Kevarrius Hayes","13"],["Tanasković","Nikola Tanasković","10","11"],["Thompson","Ethan Thompson","5"],["Willis","Derek Willis","35"],
+    ["Allman","Kyle Allman Jr.","0"],["Vildoza","Luca Vildoza","3"],["Stevens","Lamar Stevens","11"],["Sy","Bandja Sy","95"]
+  ]) },
+  zvezda: { name: "Crvena zvezda", body: "#d6001c", trim: "#fff", players: players([
+    ["Lazarević","Stefan Lazarević","2"],["Wolters","Nate Wolters","3"],["Uskoković","Aleksa Uskoković","4"],["Davidovac","Dejan Davidovac","7"],
+    ["Mitrović","Luka Mitrović","9"],["Lazić","Branko Lazić","10"],["Kalinić","Nikola Kalinić","12"],["Dobrić","Ognjen Dobrić","13"],
+    ["Hollins","Austin Hollins","14"],["Simonović","Marko Simonović","19","11"],["N. Ivanović","Nikola Ivanović","20"],["White","Aaron White","30"],
+    ["Kuzmić","Ognjen Kuzmić","32"],["Zirbes","Maik Zirbes","33"],["Popović","Nemanja Popović","77"],["Marković","Stefan Marković","27"],
+    ["Topić","Nikola Topić","44"],["Nedović","Nemanja Nedović","26","33","36"],["Gačić","Lazar Gačić","5"],["Holland","John Holland","0"],
+    ["Adams","Jaylen Adams","3"],["Martin","Hassan Martin","12"],["D. Ilić","Dalibor Ilić","22"],["Petrušev","Filip Petrušev","33","30"],
+    ["Bentil","Ben Bentil","50"],["Raduljica","Miroslav Raduljica","15"],["Vildoza","Luca Vildoza","1"],["Campazzo","Facundo Campazzo","7"],
+    ["Teodosić","Miloš Teodosić","4"],["Hanga","Ádám Hanga","5"],["Napier","Shabazz Napier","13"],["Tobey","Mike Tobey","18"],
+    ["Bolomboy","Joel Bolomboy","21"],["Giedraitis","Rokas Giedraitis","31"],["Bjelica","Nemanja Bjelica","44","88"],["Yago","Yago dos Santos","99"],
+    ["Gillespie","Freddie Gillespie","33"],["Smart","Javonte Smart","1"],["Thompkins","Trey Thompkins","6"],["Miller-McIntyre","Codi Miller-McIntyre","0"],
+    ["Canaan","Isaiah Canaan","3"],["Daum","Mike Daum","24"],["Plavšić","Uroš Plavšić","1","33"],["Kostić","Andrej Kostić","47"],
+    ["Brown","John Brown","1"],["Miljenović","Stefan Miljenović","2"],["Graham","Devonte' Graham","4"],["Carter","Tyson Carter","11"],
+    ["Rivero","Jasiel Rivero","14"],["Izundu","Ebuka Izundu","15"],["Stojković","Lazar Stojković","17"],["Nwora","Jordan Nwora","33"],
+    ["Ojeleye","Semi Ojeleye","37"],["Radošić","Ognjen Radošić","44"],["Moneke","Chima Moneke","95"],["Butler","Jared Butler","6"],
+    ["Motiejūnas","Donatas Motiejūnas","20"],["Motley","Johnathan Motley","0"],["Jones","Chris Jones","1"],["Weiler-Babb","Nick Weiler-Babb","3"],
+    ["Đurišić","Nikola Đurišić","23"],["Baldwin Jr.","Patrick Baldwin Jr.","24"],["Medarević","Vojin Medarević","25"],["Bjelić","Andrej Bjelić","30"],
+    ["Krämer","David Krämer","44"]
+  ]) }
+};
+
+// Košarkaški dres u bojama kluba sa brojem
+const jersey = (club, num) => `<svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg">
+  <path d="M28 4 L40 4 Q50 24 60 4 L72 4 Q72 30 88 40 L88 106 L12 106 L12 40 Q28 30 28 4 Z" fill="${club.body}" stroke="${club.trim}" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M12 96 L88 96" stroke="${club.trim}" stroke-width="3"/>
+  <text x="50" y="${num.length > 1 ? 78 : 80}" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="${num.length > 1 ? 38 : 44}" fill="${club.trim}">${num}</text>
+</svg>`;
+
+const PRIZES = [100,200,300,500,1000,2000,4000,8000,16000,32000,64000,125000,250000,500000,1000000];
+const SAFE = [4, 9]; // indeksi zagarantovanih suma
+const money = n => n.toLocaleString("sr-RS").replace(/ /g, ".") + " €";
+const $ = id => document.getElementById(id);
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+let pool = [];      // znakovi čije su se slike učitale
+let st = null;      // stanje igre
+
+// Tesan okvir oko nacrtanog dela slike + koje vrste/kolone imaju "mastila"
+function ink(d, w, x0, y0, x1, y1) {
+  const rows = new Uint8Array(y1), cols = new Uint8Array(x1);
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+    const i = (y * w + x) * 4;
+    if (d[i + 3] > 40 && (d[i] < 235 || d[i + 1] < 235 || d[i + 2] < 235)) rows[y] = cols[x] = 1;
+  }
+  const lo = (a, s) => { let i = s; while (i < a.length && !a[i]) i++; return i; };
+  const hi = a => { let i = a.length; while (i > 0 && !a[i - 1]) i--; return i; };
+  return { rows, cols, x0: lo(cols, x0), x1: hi(cols), y0: lo(rows, y0), y1: hi(rows) };
+}
+
+// Najveća praznina u nizu između a i b: tu se znak odvaja od natpisa
+function gap(arr, a, b) {
+  let best = null, start = -1;
+  for (let i = a; i < b; i++) {
+    if (!arr[i]) { if (start < 0) start = i; }
+    else if (start >= 0) { if (!best || i - start > best[1] - best[0]) best = [start, i]; start = -1; }
+  }
+  return best;
+}
+
+// Sklanja ime proizvođača sa slike.
+// opt.cut:  strana na kojoj je natpis pored znaka (b/t/l/r), odseca se
+// opt.blur: elipse [cx, cy, rx, ry] (delovi slike 0-1) preko natpisa unutar samog znaka
+// opt.erase: pravougaonici [x0, y0, x1, y1] sa natpisom na glatkoj pozadini, prefarbavaju se bojom pozadine
+function process(img, opt) {
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const src = document.createElement("canvas"); src.width = w; src.height = h;
+  const sx = src.getContext("2d", { willReadFrequently: true });
+  sx.drawImage(img, 0, 0);
+  const d = sx.getImageData(0, 0, w, h).data;
+  let box = ink(d, w, 0, 0, w, h);
+  if (opt.cut) {
+    const horiz = opt.cut === "l" || opt.cut === "r";
+    const g = horiz ? gap(box.cols, box.x0, box.x1) : gap(box.rows, box.y0, box.y1);
+    if (g) {
+      let { x0, y0, x1, y1 } = box;
+      if (opt.cut === "b") y1 = g[0]; else if (opt.cut === "t") y0 = g[1];
+      else if (opt.cut === "r") x1 = g[0]; else x0 = g[1];
+      box = ink(d, w, x0, y0, x1, y1);
+    }
+  }
+  const W = box.x1 - box.x0, H = box.y1 - box.y0;
+  const out = document.createElement("canvas"); out.width = W; out.height = H;
+  const o = out.getContext("2d");
+  o.drawImage(src, box.x0, box.y0, W, H, 0, 0, W, H);
+  for (const [cx, cy, rx, ry] of opt.blur || []) {
+    // zamućenje smanjivanjem pa uvećavanjem (ctx.filter ne radi u Safariju)
+    const bx = (cx - rx) * W, by = (cy - ry) * H, bw = 2 * rx * W, bh = 2 * ry * H;
+    const s = Math.min(bw, bh) / 3;
+    const tiny = document.createElement("canvas");
+    tiny.width = Math.max(2, Math.round(bw / s)); tiny.height = Math.max(2, Math.round(bh / s));
+    tiny.getContext("2d").drawImage(out, bx, by, bw, bh, 0, 0, tiny.width, tiny.height);
+    o.save();
+    o.beginPath(); o.ellipse(cx * W, cy * H, rx * W, ry * H, 0, 0, Math.PI * 2); o.clip();
+    o.clearRect(bx, by, bw, bh);
+    o.imageSmoothingQuality = "high";
+    o.drawImage(tiny, bx, by, bw, bh);
+    o.restore();
+  }
+  for (const [fx0, fy0, fx1, fy1] of opt.erase || []) {
+    // svaka vrsta se popunjava prelazom između boja na levoj i desnoj ivici pravougaonika
+    const ex = Math.round(fx0 * W), ey = Math.round(fy0 * H), ew = Math.round((fx1 - fx0) * W), eh = Math.round((fy1 - fy0) * H);
+    const im = o.getImageData(ex, ey, ew, eh), p = im.data;
+    for (let y = 0; y < eh; y++) {
+      const a = y * ew * 4, b = a + (ew - 1) * 4;
+      for (let x = 1; x < ew - 1; x++) for (let c = 0; c < 4; c++)
+        p[a + x * 4 + c] = p[a + c] + (p[b + c] - p[a + c]) * x / (ew - 1);
+    }
+    o.putImageData(im, ex, ey);
+  }
+  return out.toDataURL("image/png");
+}
+
+// Predučitavanje: u igri ostaju samo znakovi čija se slika učitala i obradila
+function preload() {
+  let left = BRANDS.length;
+  BRANDS.forEach(b => {
+    const im = new Image();
+    im.crossOrigin = "anonymous";
+    im.onload = () => { try { b.src = process(im, b.opt); pool.push(b); } catch (e) { console.error(b.slug, e); } tick(); };
+    im.onerror = tick;
+    im.src = IMG(b);
+  });
+  function tick() {
+    if (--left) return;
+    saveOffline();
+    if (pool.length >= 20) {
+      $("playBtn").disabled = false;
+      $("loadMsg").textContent = pool.length + " znakova spremno";
+    } else {
+      $("loadMsg").textContent = "Znakovi nisu učitani. Proveri internet vezu.";
+    }
+  }
+}
+
+// Slike znakova se čuvaju na uređaju (isti keš kao u sw.js) da bi igra radila bez interneta
+function saveOffline() {
+  if (!("caches" in window)) return;
+  caches.open("kviz-milioner-v1").then(c =>
+    pool.forEach(b => c.match(IMG(b)).then(hit => hit || c.add(IMG(b)).catch(() => {}))));
+}
+
+function show(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
+}
+function overlay(id, on) { $(id).classList.toggle("active", on); }
+
+function pickBrand(tier, exclude) {
+  let c = pool.filter(b => b.tier === tier && !exclude.has(b.slug));
+  if (!c.length) c = pool.filter(b => !exclude.has(b.slug));
+  return c[Math.random() * c.length | 0];
+}
+
+function playerQuestion() {
+  const club = CLUBS[st.mode];
+  const left = club.players.filter(p => !st.used.has(p.full));
+  const player = left[Math.random() * left.length | 0];
+  st.used.add(player.full);
+  // brojevi koje je igrač ikada nosio u klubu ne smeju da budu pogrešni odgovori
+  const own = new Set([player.num, ...player.alt]);
+  if (own.has("0") || own.has("00")) { own.add("0"); own.add("00"); }
+  const nums = shuffle([...new Set(club.players.map(p => p.num))].filter(n => !own.has(n))).slice(0, 3);
+  const correct = { slug: player.num, name: `broj ${player.num} (${player.full})` };
+  return { player, correct, opts: shuffle([correct, ...nums.map(n => ({ slug: n }))]) };
+}
+
+function makeQuestion(level) {
+  if (st.mode !== "cars") return playerQuestion();
+  const tier = level < 5 ? 0 : level < 10 ? 1 : 2;
+  const correct = pickBrand(tier, st.used);
+  st.used.add(correct.slug);
+  const ex = new Set([correct.slug]);
+  const opts = [correct];
+  while (opts.length < 4) { const d = pickBrand(tier, ex); ex.add(d.slug); opts.push(d); }
+  return { correct, opts: shuffle(opts) };
+}
+
+function startGame(mode) {
+  st = { mode, level: 0, used: new Set(), q: null };
+  $("fifty").classList.remove("used");
+  $("swap").classList.remove("used");
+  ["endOv", "quitOv", "ladderOv"].forEach(o => overlay(o, false));
+  show("game");
+  nextQuestion();
+}
+
+function nextQuestion() {
+  st.q = makeQuestion(st.level);
+  render();
+}
+
+function render() {
+  const { q, level } = st;
+  $("game").classList.remove("locked");
+  $("qNum").textContent = (level + 1) + " / 15";
+  $("prizeBtn").textContent = money(PRIZES[level]);
+  $("dots").innerHTML = PRIZES.map((_, i) =>
+    `<i class="${i < level ? "done" : i === level ? "now" : ""} ${SAFE.includes(i) ? "safe" : ""}"></i>`).join("");
+  const club = CLUBS[st.mode];
+  $("game").classList.toggle("players", !!club);
+  if (club) {
+    $("nameClub").textContent = club.name;
+    $("nameText").textContent = q.player.full;
+    $("qText").textContent = "Koji broj nosi na dresu?";
+    $("answers").innerHTML = q.opts.map((o, i) =>
+      `<button class="ans jersey" data-slug="${o.slug}"><em>${"ABCD"[i]}</em>${jersey(club, o.slug)}</button>`).join("");
+  } else {
+    $("logo").src = q.correct.src;
+    $("qText").textContent = "Koji je ovo znak automobila?";
+    $("answers").innerHTML = q.opts.map((o, i) =>
+      `<button class="ans" data-slug="${o.slug}"><span><em>${"ABCD"[i]}:</em> ${o.name}</span></button>`).join("");
+  }
+  const card = $(club ? "nameCard" : "card"); card.classList.remove("pop"); void card.offsetWidth; card.classList.add("pop");
+  renderLadder();
+}
+
+function guaranteed() {
+  const s = SAFE.filter(i => i < st.level).pop();
+  return s === undefined ? 0 : PRIZES[s];
+}
+
+async function answer(btn) {
+  const game = $("game");
+  if (game.classList.contains("locked")) return;
+  game.classList.add("locked");
+  btn.classList.add("picked");
+  await wait(1300);
+  const ok = btn.dataset.slug === st.q.correct.slug;
+  btn.classList.remove("picked");
+  document.querySelector(`.ans[data-slug="${st.q.correct.slug}"]`).classList.add("right");
+  if (!ok) btn.classList.add("wrong");
+  await wait(1500);
+  if (!ok) return end("Netačno!", guaranteed(), `Tačan odgovor: ${st.q.correct.name}`);
+  if (st.level === PRIZES.length - 1) return end("🎉 Milioner!", PRIZES[st.level], "Svih 15 odgovora je tačno.");
+  st.level++;
+  nextQuestion();
+}
+
+function end(title, sum, text) {
+  $("endTitle").textContent = title;
+  $("endSum").textContent = money(sum);
+  $("endText").textContent = text;
+  overlay("endOv", true);
+}
+
+function renderLadder() {
+  const html = PRIZES.map((p, i) =>
+    `<li class="${i === st.level ? "now" : i < st.level ? "done" : ""} ${SAFE.includes(i) ? "safe" : ""}"><span>${i + 1}</span><span>${money(p)}</span></li>`
+  ).reverse().join("");
+  document.querySelectorAll(".ladder").forEach(l => l.innerHTML = html);
+}
+
+// Pregled obrađenih znakova (original i verzija u igri)
+const REMOVED = [["Jeep", "jeep"], ["McLaren", "mclaren"], ["Dodge", "dodge"]];
+function renderGallery() {
+  const item = (b, i) => `<div class="gal-item"><div><img src="${IMG(b)}">${b.src ? `<i>→</i><img src="${b.src}">` : ""}</div>${i}. ${b.name}</div>`;
+  const group = (title, list, from) => list.length ? `<h3>${title}</h3>` + list.map((b, i) => item(b, from + i)).join("") : "";
+  const blur = pool.filter(b => b.opt.blur || b.opt.erase), cut = pool.filter(b => b.opt.cut && !blur.includes(b));
+  $("gal").innerHTML =
+    group("Sklonjeno ime u znaku", blur, 1) +
+    group("Odsečen natpis pored znaka", cut, blur.length + 1) +
+    group("Izbačeni iz igre", REMOVED.map(([name, slug]) => ({ name, slug })), blur.length + cut.length + 1);
+}
+$("galBtn").onclick = () => { renderGallery(); overlay("galOv", true); };
+$("galClose").onclick = () => overlay("galOv", false);
+
+// ---------- Događaji ----------
+$("playBtn").onclick = () => startGame("cars");
+$("partizanBtn").onclick = () => startGame("partizan");
+$("zvezdaBtn").onclick = () => startGame("zvezda");
+$("partizanIco").innerHTML = jersey(CLUBS.partizan, "");
+$("zvezdaIco").innerHTML = jersey(CLUBS.zvezda, "");
+$("againBtn").onclick = () => startGame(st.mode);
+$("homeBtn").onclick = () => { overlay("endOv", false); show("start"); };
+$("answers").onclick = e => { const b = e.target.closest(".ans"); if (b) answer(b); };
+
+$("fifty").onclick = () => {
+  $("fifty").classList.add("used");
+  const wrong = shuffle([...document.querySelectorAll(".ans")].filter(b => b.dataset.slug !== st.q.correct.slug));
+  wrong.slice(0, 2).forEach(b => b.classList.add("hidden"));
+};
+$("swap").onclick = () => { $("swap").classList.add("used"); nextQuestion(); };
+
+$("prizeBtn").onclick = () => overlay("ladderOv", true);
+$("ladderClose").onclick = () => overlay("ladderOv", false);
+
+$("quitBtn").onclick = () => {
+  if ($("game").classList.contains("locked")) return;
+  $("quitSum").textContent = money(st.level ? PRIZES[st.level - 1] : 0);
+  overlay("quitOv", true);
+};
+$("quitNo").onclick = () => overlay("quitOv", false);
+$("quitYes").onclick = () => {
+  overlay("quitOv", false);
+  end("Kraj igre", st.level ? PRIZES[st.level - 1] : 0, "Odustao si i sačuvao osvojeni iznos.");
+};
+
+preload();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+</script>
+</body>
+</html>
